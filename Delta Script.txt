@@ -1,102 +1,326 @@
+-- ================== Adjustable Settings ==================
+local settings = {
+    autoGetGunEnabled = true,
+    autoShootEnabled = true,
+    shootThroughWalls = true,
+    autoShootInterval = 0.2, -- seconds
+    coinFarmInterval = 1, -- seconds
+    coinsPerInterval = 10,
+    speedBoostValue = 50,
+    flyVelocity = 50,
+    aimLockToggleKey = Enum.KeyCode.L,
+    
+    -- New adjustable parameters:
+    coinFarmSpeedMultiplier = 2, -- Multiplier for farming speed (e.g., 2x coins per interval)
+    flingPower = 150 -- Power of fling (velocity magnitude)
+}
+-- ================== End of Settings ==================
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local Debris = game:GetService("Debris")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
 
-local player = Players.LocalPlayer
+local localPlayer = Players.LocalPlayer
+local camera = Workspace.CurrentCamera
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "Air's Hub"
 gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+gui.Parent = localPlayer:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 260)
-frame.Position = UDim2.new(0, 20, 0.5, -130)
+frame.Size = UDim2.new(0, 220, 0, 500)
+frame.Position = UDim2.new(0, 20, 0.5, -250)
 frame.Parent = gui
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1,0,0,40)
+title.Size = UDim2.new(1, 0, 0, 40)
 title.Text = "exploites"
 title.TextScaled = true
 title.Parent = frame
 
 local function makeButton(text, y)
-	local b = Instance.new("TextButton")
-	b.Size = UDim2.new(0.8,0,0,35)
-	b.Position = UDim2.new(0.1,0,0,y)
-	b.Text = text
-	b.Parent = frame
-	return b
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0.8, 0, 0, 35)
+    b.Position = UDim2.new(0.1, 0, 0, y)
+    b.Text = text
+    b.Parent = frame
+    return b
 end
 
-local speedButton = makeButton("⚡ Speed Boost",100)
-local flyButton = makeButton("🪽 Fly",100)
-local shieldButton = makeButton("🛡️ Shield",600)
-local spinButton = makeButton("😂 Spin",400)
+local speedButton = makeButton("⚡ Speed Boost", 100)
+local flyButton = makeButton("🪽 Fly", 140)
+local shieldButton = makeButton("🛡️ Shield", 180)
+local spinButton = makeButton("😂 Spin", 220)
+local flingButton = makeButton("🌀 Fling Player", 260)
+local aimLockButton = makeButton("🎯 Aim Lock", 300)
+local invisibilityButton = makeButton("🕵️ Invisibility", 340)
+local coinFarmButton = makeButton("💰 Farm Coins", 380)
+local autoGetGunButton = makeButton("🔫 Auto Get Gun", 420)
+local autoShootButton = makeButton("🔫 Auto Shoot Murderer", 460)
 
 local flying = false
 local shield = false
+local aimLockEnabled = false
+local invisibility = false
+local farmingCoins = false
+local autoGetGun = false
+local autoShoot = false
 
 local function getCharacter()
-	return player.Character or player.CharacterAdded:Wait()
+    return localPlayer.Character or localPlayer.CharacterAdded:Wait()
 end
+
+-- ================== Button Functionalities ==================
 
 -- Speed
 speedButton.MouseButton1Click:Connect(function()
-	local hum = getCharacter():FindFirstChildOfClass("Humanoid")
-	if hum then
-		hum.WalkSpeed = 50
-	end
+    local hum = getCharacter():FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.WalkSpeed = settings.speedBoostValue
+    end
 end)
 
 -- Fly
 flyButton.MouseButton1Click:Connect(function()
-	flying = not flying
-
-	local char = getCharacter()
-	local root = char:FindFirstChild("HumanoidRootPart")
-
-	if root then
-		local bv = root:FindFirstChild("FlyForce")
-
-		if flying then
-			bv = Instance.new("BodyVelocity")
-			bv.Name = "FlyForce"
-			bv.MaxForce = Vector3.new(0,math.huge,0)
-			bv.Velocity = Vector3.new(0,50,0)
-			bv.Parent = root
-		else
-			if bv then
-				bv:Destroy()
-			end
-		end
-	end
+    flying = not flying
+    local root = getCharacter():FindFirstChild("HumanoidRootPart")
+    if root then
+        local bv = root:FindFirstChild("FlyForce")
+        if flying then
+            if not bv then
+                bv = Instance.new("BodyVelocity")
+                bv.Name = "FlyForce"
+                bv.MaxForce = Vector3.new(0, math.huge, 0)
+                bv.Velocity = Vector3.new(0, settings.flyVelocity, 0)
+                bv.Parent = root
+            end
+        else
+            if bv then bv:Destroy() end
+        end
+    end
 end)
 
 -- Shield
 shieldButton.MouseButton1Click:Connect(function()
-	shield = not shield
-
-	local hum = getCharacter():FindFirstChildOfClass("Humanoid")
-
-	if hum then
-		if shield then
-			hum.MaxHealth = math.huge
-			hum.Health = math.huge
-		else
-			hum.MaxHealth = 1000
-			hum.Health = 1000
-		end
-	end
+    shield = not shield
+    local hum = getCharacter():FindFirstChildOfClass("Humanoid")
+    if hum then
+        if shield then
+            hum.MaxHealth = math.huge
+            hum.Health = math.huge
+        else
+            hum.MaxHealth = 1000
+            hum.Health = 1000
+        end
+    end
 end)
 
 -- Spin
 spinButton.MouseButton1Click:Connect(function()
-	local root = getCharacter():FindFirstChild("HumanoidRootPart")
+    local root = getCharacter():FindFirstChild("HumanoidRootPart")
+    if root then
+        for i = 1, 60 do
+            root.CFrame *= CFrame.Angles(0, math.rad(20), 0)
+            RunService.RenderStepped:Wait()
+        end
+    end
+end)
 
-	if root then
-		for i = 1,60 do
-			root.CFrame *= CFrame.Angles(0,math.rad(20),0)
-			RunService.RenderStepped:Wait()
-		end
-	end
+-- Fling Player
+flingButton.MouseButton1Click:Connect(function()
+    local localCharacter = getCharacter()
+    local localRoot = localCharacter:FindFirstChild("HumanoidRootPart")
+    if not localRoot then return end
+
+    local closestPlayer = nil
+    local closestDistance = math.huge
+
+    for _, otherPlayer in pairs(Players:GetPlayers()) do
+        if otherPlayer ~= localPlayer and otherPlayer.Character then
+            local hrp = otherPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local distance = (hrp.Position - localRoot.Position).magnitude
+                if distance < closestDistance then
+                    closestDistance = distance
+                    closestPlayer = otherPlayer
+                end
+            end
+        end
+    end
+
+    if closestPlayer then
+        local targetHRP = closestPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if targetHRP then
+            local flingForce = Instance.new("BodyVelocity")
+            flingForce.Velocity = Vector3.new(
+                math.random(-50,50),
+                100,
+                math.random(-50,50)
+            )
+            flingForce.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+            flingForce.Parent = targetHRP
+            Debris:AddItem(flingForce, 0.5)
+        end
+    end
+end)
+
+-- Toggle Aim Lock
+aimLockButton.MouseButton1Click:Connect(function()
+    aimLockEnabled = not aimLockEnabled
+end)
+
+-- Toggle Invisibility
+invisibilityButton.MouseButton1Click:Connect(function()
+    local character = getCharacter()
+    invisibility = not invisibility
+    for _, part in ipairs(character:GetChildren()) do
+        if part:IsA("BasePart") then
+            part.Transparency = invisibility and 1 or 0
+            part.CanCollide = not invisibility
+        elseif part:IsA("Decal") or part:IsA("SurfaceGui") then
+            part.Transparency = invisibility and 1 or 0
+        end
+    end
+    -- Keep health full
+    local hum = character:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.MaxHealth = invisibility and math.huge or 100
+        hum.Health = math.huge
+    end
+end)
+
+-- ================== Adjustable Features ==================
+
+-- Coin Farming
+coinFarmButton.MouseButton1Click:Connect(function()
+    farmingCoins = not farmingCoins
+    if farmingCoins then
+        -- Ensure leaderstats exist
+        local leaderstats = localPlayer:FindFirstChild("leaderstats")
+        if not leaderstats then
+            leaderstats = Instance.new("Folder")
+            leaderstats.Name = "leaderstats"
+            leaderstats.Parent = localPlayer
+        end
+        local coins = leaderstats:FindFirstChild("Coins")
+        if not coins then
+            coins = Instance.new("IntValue")
+            coins.Name = "Coins"
+            coins.Value = 0
+            coins.Parent = leaderstats
+        end
+
+        spawn(function()
+            while farmingCoins do
+                wait(settings.coinFarmInterval)
+                coins.Value = coins.Value + settings.coinsPerInterval * settings.coinFarmSpeedMultiplier
+            end
+        end)
+    end
+end)
+
+-- ================== Auto-get gun when dropped ==================
+spawn(function()
+    while settings.autoGetGunEnabled do
+        wait(1)
+        for _, item in pairs(Workspace:GetChildren()) do
+            if item:IsA("Tool") and item.Parent == Workspace then
+                if item.Name == "Gun" then -- change name if needed
+                    local character = getCharacter()
+                    local hrp = character:FindFirstChild("HumanoidRootPart")
+                    local handle = item:FindFirstChild("Handle")
+                    if hrp and handle then
+                        handle.CFrame = hrp.CFrame * CFrame.new(0, -1, 2)
+                        item.Parent = character
+                        break
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- ================== Auto-shoot murderer & shoot through walls ==================
+spawn(function()
+    while settings.autoShootEnabled do
+        wait(settings.autoShootInterval)
+        local murderer = nil
+        local minDist = math.huge
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= localPlayer and p.Character and p.Character:FindFirstChild("Role") then
+                if p.Character:FindFirstChild("Role").Value == "Murderer" then
+                    local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        local dist = (hrp.Position - getCharacter().HumanoidRootPart.Position).magnitude
+                        if dist < minDist then
+                            minDist = dist
+                            murderer = p
+                        end
+                    end
+                end
+            end
+        end
+        if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
+            local targetPos = murderer.Character.HumanoidRootPart.Position
+            local origin = getCharacter().HumanoidRootPart.Position
+            local direction = (targetPos - origin).unit * 500
+
+            if settings.shootThroughWalls then
+                local raycastParams = RaycastParams.new()
+                raycastParams.FilterDescendantsInstances = {getCharacter()}
+                raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+                local result = Workspace:Raycast(origin, direction, raycastParams)
+                if result and result.Instance and result.Instance.Parent:FindFirstChild("Humanoid") then
+                    result.Instance.Parent.Humanoid.Health = 0
+                else
+                    if murderer.Character:FindFirstChild("Humanoid") then
+                        murderer.Character.Humanoid.Health = 0
+                    end
+                end
+            else
+                -- Normal shot (add your own shooting logic here)
+            end
+        end
+    end
+end)
+
+-- ================== Aim Lock ==================
+RunService.RenderStepped:Connect(function()
+    if aimLockEnabled then
+        local targetPlayer = nil
+        local closestDistance = math.huge
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= localPlayer and p.Character and p.Character:FindFirstChild("Role") then
+                local role = p.Character:FindFirstChild("Role").Value
+                if role == "Murderer" then
+                    local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        local dist = (hrp.Position - workspace.CurrentCamera.CFrame.Position).magnitude
+                        if dist < closestDistance then
+                            closestDistance = dist
+                            targetPlayer = p
+                        end
+                    end
+                end
+            end
+        end
+        if targetPlayer and targetPlayer.Character then
+            local hrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local targetPos = hrp.Position
+                workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, targetPos)
+            end
+        end
+    end
+end)
+
+-- ================== Toggle aim lock with key ==================
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == settings.aimLockToggleKey then
+        aimLockEnabled = not aimLockEnabled
+    end
 end)
