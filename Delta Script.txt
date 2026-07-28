@@ -1,0 +1,102 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "Air's Hub"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 220, 0, 260)
+frame.Position = UDim2.new(0, 20, 0.5, -130)
+frame.Parent = gui
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,0,0,40)
+title.Text = "exploites"
+title.TextScaled = true
+title.Parent = frame
+
+local function makeButton(text, y)
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.new(0.8,0,0,35)
+	b.Position = UDim2.new(0.1,0,0,y)
+	b.Text = text
+	b.Parent = frame
+	return b
+end
+
+local speedButton = makeButton("⚡ Speed Boost",100)
+local flyButton = makeButton("🪽 Fly",100)
+local shieldButton = makeButton("🛡️ Shield",600)
+local spinButton = makeButton("😂 Spin",400)
+
+local flying = false
+local shield = false
+
+local function getCharacter()
+	return player.Character or player.CharacterAdded:Wait()
+end
+
+-- Speed
+speedButton.MouseButton1Click:Connect(function()
+	local hum = getCharacter():FindFirstChildOfClass("Humanoid")
+	if hum then
+		hum.WalkSpeed = 50
+	end
+end)
+
+-- Fly
+flyButton.MouseButton1Click:Connect(function()
+	flying = not flying
+
+	local char = getCharacter()
+	local root = char:FindFirstChild("HumanoidRootPart")
+
+	if root then
+		local bv = root:FindFirstChild("FlyForce")
+
+		if flying then
+			bv = Instance.new("BodyVelocity")
+			bv.Name = "FlyForce"
+			bv.MaxForce = Vector3.new(0,math.huge,0)
+			bv.Velocity = Vector3.new(0,50,0)
+			bv.Parent = root
+		else
+			if bv then
+				bv:Destroy()
+			end
+		end
+	end
+end)
+
+-- Shield
+shieldButton.MouseButton1Click:Connect(function()
+	shield = not shield
+
+	local hum = getCharacter():FindFirstChildOfClass("Humanoid")
+
+	if hum then
+		if shield then
+			hum.MaxHealth = math.huge
+			hum.Health = math.huge
+		else
+			hum.MaxHealth = 1000
+			hum.Health = 1000
+		end
+	end
+end)
+
+-- Spin
+spinButton.MouseButton1Click:Connect(function()
+	local root = getCharacter():FindFirstChild("HumanoidRootPart")
+
+	if root then
+		for i = 1,60 do
+			root.CFrame *= CFrame.Angles(0,math.rad(20),0)
+			RunService.RenderStepped:Wait()
+		end
+	end
+end)
